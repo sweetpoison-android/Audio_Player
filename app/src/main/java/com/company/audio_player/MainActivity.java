@@ -1,29 +1,15 @@
 package com.company.audio_player;
 
-import androidx.appcompat.app.AppCompatActivity;
-
 import android.Manifest;
-import android.content.BroadcastReceiver;
-import android.content.ComponentName;
-import android.content.ContentResolver;
-import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.database.Cursor;
-import android.media.AudioManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
-import android.os.IBinder;
-import android.provider.MediaStore;
-import android.telephony.PhoneStateListener;
-import android.telephony.TelephonyManager;
 import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
-import android.widget.Toast;
+
+import androidx.appcompat.app.AppCompatActivity;
 
 import com.karumi.dexter.Dexter;
 import com.karumi.dexter.PermissionToken;
@@ -83,7 +69,7 @@ public class MainActivity extends AppCompatActivity {
             else
             {
                 //if(singlefile.getName().endsWith(".mp3") || singlefile.getName().endsWith(".wav"))
-                    if(singlefile.getName().endsWith(".mp3"))
+                    if(singlefile.getName().endsWith(".mp3") || singlefile.getName().endsWith("Wav"))
                 {
                     arraylist.add(singlefile);
                 }

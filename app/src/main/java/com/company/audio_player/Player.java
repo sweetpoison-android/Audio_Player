@@ -6,7 +6,6 @@ import androidx.appcompat.app.AppCompatActivity;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
-import android.graphics.Color;
 import android.graphics.PorterDuff;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -15,7 +14,6 @@ import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
-import android.provider.MediaStore;
 import android.speech.RecognizerIntent;
 import android.view.MenuItem;
 import android.view.View;
@@ -33,7 +31,7 @@ public class Player extends AppCompatActivity {
 ImageView voice;
     static MediaPlayer mp;//assigning memory loc once or else multiple songs will play at once
     int position;
-    SeekBar sb;
+    SeekBar seekBar;
     ArrayList<File> mySongs;
     Thread updateSeekBar;
     Button pause,next,previous;
@@ -41,7 +39,7 @@ ImageView voice;
 
     String sname;
 
-    SensorManager sm;
+    SensorManager sensorManager;
     float acelval;
     float acellast;
     float shake;
@@ -53,13 +51,13 @@ ImageView voice;
 
         voice=findViewById(R.id.voice);
         songNameText=findViewById(R.id.playertextview);
-        sb=findViewById(R.id.playerProgressbar);
+        seekBar =findViewById(R.id.playerProgressbar);
         pause=findViewById(R.id.playerplaybutton);
         next=findViewById(R.id.playernextButton);
         previous=findViewById(R.id.playerbackButton);
 
-        sm=(SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        sm.registerListener(sensorlistitener,sm.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
+        sensorManager =(SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        sensorManager.registerListener(sensorlistitener, sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),SensorManager.SENSOR_DELAY_NORMAL);
 
         acelval=SensorManager.GRAVITY_EARTH;
         acellast=SensorManager.GRAVITY_EARTH;
@@ -78,8 +76,15 @@ ImageView voice;
                 while(currentPosition < totalDuration){
                     try{
                         sleep(500);
-                        currentPosition=mp.getCurrentPosition();
-                        sb.setProgress(currentPosition);
+                        try{
+                            currentPosition=mp.getCurrentPosition();
+                        }catch(Exception e)
+                        {
+                           
+                        }
+
+
+                        seekBar.setProgress(currentPosition);
                     }
                     catch (InterruptedException e){
 
@@ -95,32 +100,34 @@ ImageView voice;
             mp.stop();
             mp.release();
         }
-        Intent i = getIntent();
-        Bundle b = i.getExtras();
+        Intent intent = getIntent();
+        Bundle bundle = intent.getExtras();
 
 
-        mySongs = (ArrayList) b.getParcelableArrayList("songlist");
+        mySongs = (ArrayList) bundle.getParcelableArrayList("songlist");
 
         sname = mySongs.get(position).getName().toString();
 
-        String SongName = i.getStringExtra("songname");
+        String SongName = intent.getStringExtra("songname");
         songNameText.setText(SongName);
         songNameText.setSelected(true);
 
-        position = b.getInt("position",0);
+        position = bundle.getInt("position",0);
         Uri u = Uri.parse(mySongs.get(position).toString());
 
         mp = MediaPlayer.create(getApplicationContext(),u);
         mp.start();
-        sb.setMax(mp.getDuration());
+        seekBar.setMax(mp.getDuration());
+
         updateSeekBar.start();
-        sb.getProgressDrawable().setColorFilter(getResources().getColor(R.color.colorPrimary), PorterDuff.Mode.MULTIPLY);
-        sb.getThumb().setColorFilter(getResources().getColor(R.color.colorPrimary), PorterDuff.Mode.SRC_IN);
+        seekBar.getProgressDrawable().setColorFilter(getResources().getColor(R.color.colorPrimary), PorterDuff.Mode.MULTIPLY);
+        seekBar.getThumb().setColorFilter(getResources().getColor(R.color.colorPrimary), PorterDuff.Mode.SRC_IN);
 
 
-        sb.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
+        seekBar.setOnSeekBarChangeListener(new SeekBar.OnSeekBarChangeListener() {
             @Override
             public void onProgressChanged(SeekBar seekBar, int i, boolean b) {
+
             }
             @Override
             public void onStartTrackingTouch(SeekBar seekBar) {
@@ -141,7 +148,7 @@ ImageView voice;
         pause.setOnClickListener(new View.OnClickListener() {
             @Override
             public void onClick(View v) {
-                sb.setMax(mp.getDuration());
+                seekBar.setMax(mp.getDuration());
                 if(mp.isPlaying()){
                     pause.setBackgroundResource(R.drawable.play);
                    pause.getLayoutParams().width=150;
@@ -161,7 +168,11 @@ ImageView voice;
                 pause.setBackgroundResource(R.drawable.pause);
                 mp.stop();
                 mp.release();
-                position=((position+1)%mySongs.size());
+
+                    position = ((position + 1) % mySongs.size());
+                  //  Toast.makeText(Player.this, String.valueOf(position), Toast.LENGTH_SHORT).show();
+
+
                 Uri u = Uri.parse(mySongs.get( position).toString());
                 // songNameText.setText(getSongName);
                 mp = MediaPlayer.create(getApplicationContext(),u);
@@ -184,6 +195,8 @@ ImageView voice;
                 mp.release();
 
                 position=((position-1)<0)?(mySongs.size()-1):(position-1);
+              //  Toast.makeText(Player.this, String.valueOf(position), Toast.LENGTH_SHORT).show();
+
                 Uri u = Uri.parse(mySongs.get(position).toString());
                 mp = MediaPlayer.create(getApplicationContext(),u);
                 sname = mySongs.get(position).getName().toString();
@@ -209,7 +222,7 @@ ImageView voice;
             shake=shake*0.9f+delta;
             if(shake>11)
             {
-                Toast.makeText(getApplicationContext(),"shaking",Toast.LENGTH_SHORT).show();
+               // Toast.makeText(getApplicationContext(),"shaking",Toast.LENGTH_SHORT).show();
                 pause.setBackgroundResource(R.drawable.pause);
                 mp.stop();
                 mp.release();
@@ -251,19 +264,21 @@ ImageView voice;
         {
             ArrayList<String> ar=data.getStringArrayListExtra(RecognizerIntent.EXTRA_RESULTS);
 
-            if(ar.get(0).toString().equals("stop"))
+            if(ar.get(0).toString().equals("stop") || ar.get(0).toString().equals("pause"))
             {
-                sb.setMax(mp.getDuration());
+                seekBar.setMax(mp.getDuration());
                 if(mp.isPlaying()){
                     pause.setBackgroundResource(R.drawable.play);
-                    pause.getLayoutParams().width=150;
+                    pause.getLayoutParams().width=120;
                     mp.pause();
 
                 }
-                else {
-                    pause.setBackgroundResource(R.drawable.pause);
-                    mp.start();
-                }
+
+            }
+            else  if(ar.get(0).toString().equals("play") || ar.get(0).toString().equals("start"))
+            {
+                pause.setBackgroundResource(R.drawable.pause);
+                mp.start();
             }
             else if(ar.get(0).toString().equals("next"))
             {
@@ -313,7 +328,7 @@ ImageView voice;
         }
         catch (ActivityNotFoundException e)
         {
-
+            Toast.makeText(this, "please connect with Internet", Toast.LENGTH_SHORT).show();
         }
     }
 
