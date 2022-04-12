@@ -1,8 +1,6 @@
 package com.company.audio_player;
 
-import androidx.annotation.Nullable;
-import androidx.appcompat.app.AppCompatActivity;
-
+import android.annotation.SuppressLint;
 import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
@@ -14,6 +12,7 @@ import android.hardware.SensorManager;
 import android.media.MediaPlayer;
 import android.net.Uri;
 import android.os.Bundle;
+import android.os.Vibrator;
 import android.speech.RecognizerIntent;
 import android.view.MenuItem;
 import android.view.View;
@@ -23,11 +22,14 @@ import android.widget.SeekBar;
 import android.widget.TextView;
 import android.widget.Toast;
 
+import androidx.annotation.Nullable;
+import androidx.appcompat.app.AppCompatActivity;
+
 import java.io.File;
 import java.util.ArrayList;
 import java.util.Locale;
 
-public class Player extends AppCompatActivity {
+public class Player extends AppCompatActivity implements SensorEventListener {
 ImageView voice;
     static MediaPlayer mp;//assigning memory loc once or else multiple songs will play at once
     int position;
@@ -43,6 +45,13 @@ ImageView voice;
     float acelval;
     float acellast;
     float shake;
+
+    // proximity sensor
+    SensorManager proximitySensorManager;
+    Sensor proximitysensor;
+    Vibrator vibrator;
+    boolean isproximitysensoravailable;
+    //////////////////////////
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -205,6 +214,22 @@ ImageView voice;
             }
         });
 
+        // proximity sensor
+
+        sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        if (sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY) != null)
+        {
+            proximitysensor = sensorManager.getDefaultSensor(Sensor.TYPE_PROXIMITY);
+            isproximitysensoravailable = true;
+        }
+        else
+        {
+            Toast.makeText(this, "Proximity sensor not available", Toast.LENGTH_SHORT).show();
+            isproximitysensoravailable= false;
+        }
+
+        /////////////////////////////////////////
+
 
     }
 //////////// Shaking Event
@@ -329,6 +354,69 @@ ImageView voice;
         catch (ActivityNotFoundException e)
         {
             Toast.makeText(this, "please connect with Internet", Toast.LENGTH_SHORT).show();
+        }
+    }
+
+    // proximity sensor
+
+    @SuppressLint("ResourceAsColor")
+    @Override
+    public void onSensorChanged(SensorEvent event) {
+
+        if (event.values[0] == 0.0)
+        {
+            seekBar.setMax(mp.getDuration());
+            if(mp.isPlaying()){
+                pause.setBackgroundResource(R.drawable.play);
+                pause.getLayoutParams().width=120;
+                mp.pause();
+
+            }
+        }
+        else
+        {
+            pause.setBackgroundResource(R.drawable.pause);
+            mp.stop();
+            mp.release();
+            position=((position+1)%mySongs.size());
+            Uri u = Uri.parse(mySongs.get( position).toString());
+            // songNameText.setText(getSongName);
+            mp = MediaPlayer.create(getApplicationContext(),u);
+
+            sname = mySongs.get(position).getName().toString();
+            songNameText.setText(sname);
+
+            try{
+                mp.start();
+            }catch(Exception e){}
+
+        }
+    }
+
+    @SuppressLint("ResourceAsColor")
+    @Override
+    public void onAccuracyChanged(Sensor sensor, int accuracy) {
+        if (accuracy == 8)
+        {
+           // constraintLayout.setBackgroundColor(R.color.purple_700);
+        }
+    }
+
+    @Override
+    protected void onResume() {
+        super.onResume();
+        if (isproximitysensoravailable)
+        {
+            sensorManager.registerListener(this, proximitysensor, SensorManager.SENSOR_DELAY_NORMAL);
+        }
+    }
+
+    @Override
+    protected void onPause() {
+        super.onPause();
+        if (isproximitysensoravailable)
+        {
+            sensorManager.unregisterListener(this);
         }
     }
 
