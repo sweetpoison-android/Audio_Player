@@ -122,6 +122,7 @@ ImageView voice;
         songNameText.setSelected(true);
 
         position = bundle.getInt("position",0);
+        position = position-1;  // because when proximity sensor imolemented position in increased
         Uri u = Uri.parse(mySongs.get(position).toString());
 
         mp = MediaPlayer.create(getApplicationContext(),u);
